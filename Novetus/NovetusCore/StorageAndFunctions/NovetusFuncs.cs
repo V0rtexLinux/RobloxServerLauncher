@@ -104,6 +104,10 @@ namespace Novetus.Core
             if (string.IsNullOrWhiteSpace(GlobalVars.UserConfiguration.ReadSetting("ServerBrowserServerAddress")))
                 return;
 
+            // Servers started from the RobloxServer game browser are already registered as a job there.
+            if (!string.IsNullOrWhiteSpace(GlobalVars.RobloxServerJobId))
+                return;
+
             if (string.IsNullOrWhiteSpace(GlobalVars.UserConfiguration.ReadSetting("ServerBrowserServerName")))
             {
                 Util.ConsolePrint("Your server doesn't have a name. Please specify one for it to show on the master server list after server restart.", 2);

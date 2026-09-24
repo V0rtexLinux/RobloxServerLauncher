@@ -266,6 +266,7 @@ namespace NovetusLauncher
                         case ScriptType.Server:
                         case ScriptType.SoloServer:
                             NovetusFuncs.PingMasterServer(false, "Removing server from Master Server list. Reason: Novetus is shutting down.");
+                            RobloxServerGameLauncher.Shutdown();
                             break;
                         default:
                             break;

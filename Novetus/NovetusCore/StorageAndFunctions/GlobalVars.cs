@@ -126,6 +126,17 @@ namespace Novetus.Core
         public static string image_incustomization = "incustomization_small";
         #endregion
 
+        #region RobloxServer
+        // Filled by the RobloxServer game browser and injected into the generated Lua (see Script.cs).
+        public static string RobloxServerAuthTicket = "";
+        public static string RobloxServerBaseUrl = "";
+        public static string RobloxServerJobId = "";
+        public static string RobloxServerServerKey = "";
+        public static long RobloxServerPlaceId = 0;
+        public static bool RobloxServerRequireAuth = false;
+        public static bool RobloxServerFilteringEnabled = false;
+        #endregion
+
         #region Other
         public static DateTime ClientLoadDelay = DateTime.Now;
         public static bool ExtendedVersionNumber = false;

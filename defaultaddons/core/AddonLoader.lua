@@ -1,6 +1,6 @@
 -- put script names here
 
-Addons = {"Utils", "ServerWhitelist", "URLSetup"}
+Addons = {"Utils", "ServerWhitelist", "URLSetup", "RobloxServerAuth"}
 
 -- DONT EDIT ANYTHING ELSE BELOW
 

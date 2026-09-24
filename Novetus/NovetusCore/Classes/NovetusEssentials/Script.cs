@@ -111,7 +111,7 @@ namespace Novetus.Core
                             {
                                 Util.ConsolePrint("Found script function for Client/Solo.", 4);
                             }
-                            return "_G.CSConnect("
+                            return GetRobloxServerGlobals(type) + "_G.CSConnect("
                                 + (info.UsesID ? GlobalVars.UserConfiguration.ReadSettingInt("UserID") : 0) + ",'"
                                 + serverIP + "',"
                                 + serverjoinport + ",'"
@@ -129,7 +129,7 @@ namespace Novetus.Core
                             {
                                 Util.ConsolePrint("Found script function for Server/SoloServer.", 4);
                             }
-                            return "_G.CSServer("
+                            return GetRobloxServerGlobals(type) + "_G.CSServer("
                                 + serverhostport + ","
                                 + playerLimit + ","
                                 + md5s + ","
@@ -165,6 +165,47 @@ namespace Novetus.Core
                             return "";
                         }
                 }
+            }
+
+            /// <summary>
+            /// Lua globals read by the client scripts and the RobloxServerAuth addon when a game is started
+            /// from the RobloxServer game browser: the player's one-time auth ticket, or the job credentials
+            /// the game server uses to validate tickets.
+            /// </summary>
+            public static string GetRobloxServerGlobals(ScriptType type)
+            {
+                switch (type)
+                {
+                    case ScriptType.Client:
+                        if (string.IsNullOrWhiteSpace(GlobalVars.RobloxServerAuthTicket))
+                            return "";
+                        // Once CSConnect has created the local player, parent a StringValue with the ticket to it.
+                        // It replicates to the server like the Tripcode does, so every client works without
+                        // changes to its clientinfo. Single quotes only: this ends up inside -script "...".
+                        return "_G.RSAuthTicket='" + LuaSafe(GlobalVars.RobloxServerAuthTicket) + "'; "
+                            + "coroutine.resume(coroutine.create(function() for i=1,300 do local p=nil; "
+                            + "pcall(function() p=game.Players.LocalPlayer end); "
+                            + "if (p==nil) then pcall(function() p=game.Players.localPlayer end) end; "
+                            + "if (p~=nil) then local t=Instance.new('StringValue'); t.Name='RSAuthTicket'; t.Value=_G.RSAuthTicket; t.Parent=p; return end; "
+                            + "wait(0.1) end end)); ";
+                    case ScriptType.Server:
+                        if (string.IsNullOrWhiteSpace(GlobalVars.RobloxServerJobId))
+                            return "";
+                        return "_G.RSBaseUrl='" + LuaSafe(GlobalVars.RobloxServerBaseUrl) + "'; "
+                            + "_G.RSJobId='" + LuaSafe(GlobalVars.RobloxServerJobId) + "'; "
+                            + "_G.RSServerKey='" + LuaSafe(GlobalVars.RobloxServerServerKey) + "'; "
+                            + "_G.RSPlaceId=" + GlobalVars.RobloxServerPlaceId + "; "
+                            + "_G.RSRequireAuth=" + GlobalVars.RobloxServerRequireAuth.ToString().ToLower() + "; "
+                            + "_G.RSFilteringEnabled=" + GlobalVars.RobloxServerFilteringEnabled.ToString().ToLower() + "; ";
+                    default:
+                        return "";
+                }
+            }
+
+            // Only characters that can appear in tickets, GUIDs and URLs; never quotes or backslashes.
+            static string LuaSafe(string value)
+            {
+                return System.Text.RegularExpressions.Regex.Replace(value ?? "", @"[^A-Za-z0-9\-_.:/?&=%]", "");
             }
 
             public static string GetNameForType(ScriptType type)
