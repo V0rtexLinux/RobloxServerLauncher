@@ -107,6 +107,12 @@ namespace NovetusLauncher
             await LoadServers();
         }
 
+        private void RobloxServerGamesButton_Click(object sender, EventArgs e)
+        {
+            RobloxServerBrowser browser = new RobloxServerBrowser();
+            browser.Show();
+        }
+
         private void MasterServerBox_TextChanged(object sender, EventArgs e)
         {
             GlobalVars.UserConfiguration.SaveSetting("ServerBrowserServerAddress", MasterServerBox.Text);

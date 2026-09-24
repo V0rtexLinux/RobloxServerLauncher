@@ -383,6 +383,8 @@ namespace Novetus.Core
                     {"ShowServerNotifications", "True"},
                     {"ServerBrowserServerName", "Novetus"},
                     {"ServerBrowserServerAddress", ""},
+                    {"RobloxServerAddress", ""},
+                    {"RobloxServerUserName", ""},
                     {"Priority", ((int)ProcessPriorityClass.RealTime).ToString()},
                     {"FirstServerLaunch", "True"},
                     {"NewGUI", "False"},

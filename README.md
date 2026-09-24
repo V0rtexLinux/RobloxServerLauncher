@@ -3,6 +3,30 @@
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 #
 
+## RobloxServerLauncher
+
+Este fork do Novetus joga os jogos publicados no **[RobloxServer](https://github.com/V0rtexLinux/RobloxServer)**
+(servidor privado Roblox 2015 em ASP.NET clássico).
+
+**Como jogar:** abra o launcher → *Server Browser* → **ROBLOXSERVER GAMES...**
+
+1. Digite o endereço do RobloxServer (ex.: `192.168.1.2` ou `meuroblox.duckdns.org`) e clique em **REFRESH**.
+2. Entre com a sua conta do RobloxServer (**LOG IN**).
+3. Escolha um jogo:
+   * **PLAY SOLO** – baixa o place (`maps/Custom/RobloxServer/`) e abre no Play Solo com o cliente do jogo.
+   * **HOST SERVER** – registra um servidor (job) no site, abre o servidor na sua `RobloxPort` e mantém um heartbeat.
+   * **JOIN SERVER** – pede um servidor ao `PlaceLauncher.ashx`, recebe o join script assinado e entra com um ticket de autenticação de uso único.
+
+Segurança no estilo 2015: o servidor de jogo usa o addon `addons/RobloxServerAuth.lua`, que valida o ticket
+de cada jogador em `/Game/ValidateTicket.ashx` e expulsa quem não tem ticket, está banido ou usa outro nome.
+Isso soma às verificações do Novetus (MD5 do cliente, do launcher e do script, tripcode). A extensão
+`RobloxServerBridge.cs` do web proxy encaminha essas chamadas quando o cliente só pode falar com `www.roblox.com`.
+
+Para port forwarding use o Raspberry Pi Zero 2W do RobloxServer (`pi/` no repositório do servidor): coloque o IP
+deste PC e a sua `RobloxPort` em `GAME_FORWARDS`.
+
+---
+
 Source code for Novetus' launcher, installer, LUA scripts, and server.
 If you want to look at test applications built for Novetus' development, look here: https://github.com/Novetus/NovetusTests
 If you would like to look at the Places/Maps incuded in Novetus https://github.com/Novetus/Novetus-Map-Pack

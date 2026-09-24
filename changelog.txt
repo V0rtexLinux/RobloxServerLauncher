@@ -1,5 +1,14 @@
 
 ---------------------------------------------------------------------------
+RobloxServer Integration
+Enhancements:
+- Added the RobloxServer game browser (Server Browser -> ROBLOXSERVER GAMES...): log in to a RobloxServer website and
+  Play Solo, Host or Join the games published there with the client each game was published for.
+- Hosted games are registered on the website as jobs and keep a heartbeat; they are unregistered when the server closes.
+- Joining uses PlaceLauncher.ashx / Join.ashx and a one-time authentication ticket, like ROBLOX in 2015.
+- Added the RobloxServerAuth addon: servers started from the game browser validate every player's ticket with the website.
+- Added the RobloxServerBridge web proxy extension for clients that can only reach www.roblox.com.
+---------------------------------------------------------------------------
 EDGE Snapshot v26.9723.2
 Enhancements:
 - Updated anti-exploit database.

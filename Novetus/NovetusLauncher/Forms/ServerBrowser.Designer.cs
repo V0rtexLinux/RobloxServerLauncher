@@ -35,6 +35,7 @@ namespace NovetusLauncher
             this.MasterServerLabel = new System.Windows.Forms.Label();
             this.MasterServerRefreshButton = new System.Windows.Forms.Button();
             this.ServerListView = new System.Windows.Forms.ListView();
+            this.RobloxServerGamesButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // JoinGameButton
@@ -87,12 +88,23 @@ namespace NovetusLauncher
             this.ServerListView.HideSelection = false;
             this.ServerListView.Location = new System.Drawing.Point(10, 37);
             this.ServerListView.Name = "ServerListView";
-            this.ServerListView.Size = new System.Drawing.Size(555, 408);
+            this.ServerListView.Size = new System.Drawing.Size(555, 376);
             this.ServerListView.Sorting = System.Windows.Forms.SortOrder.Ascending;
             this.ServerListView.TabIndex = 4;
             this.ServerListView.UseCompatibleStateImageBehavior = false;
             this.ServerListView.View = System.Windows.Forms.View.Details;
             this.ServerListView.SelectedIndexChanged += new System.EventHandler(this.ServerListView_SelectedIndexChanged);
+            // 
+            // RobloxServerGamesButton
+            // 
+            this.RobloxServerGamesButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.RobloxServerGamesButton.Location = new System.Drawing.Point(10, 421);
+            this.RobloxServerGamesButton.Name = "RobloxServerGamesButton";
+            this.RobloxServerGamesButton.Size = new System.Drawing.Size(180, 23);
+            this.RobloxServerGamesButton.TabIndex = 5;
+            this.RobloxServerGamesButton.Text = "ROBLOXSERVER GAMES...";
+            this.RobloxServerGamesButton.UseVisualStyleBackColor = true;
+            this.RobloxServerGamesButton.Click += new System.EventHandler(this.RobloxServerGamesButton_Click);
             // 
             // ServerBrowser
             // 
@@ -100,6 +112,7 @@ namespace NovetusLauncher
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.ControlLightLight;
             this.ClientSize = new System.Drawing.Size(577, 456);
+            this.Controls.Add(this.RobloxServerGamesButton);
             this.Controls.Add(this.ServerListView);
             this.Controls.Add(this.MasterServerRefreshButton);
             this.Controls.Add(this.MasterServerLabel);
@@ -123,5 +136,6 @@ namespace NovetusLauncher
         private System.Windows.Forms.Label MasterServerLabel;
         private System.Windows.Forms.Button MasterServerRefreshButton;
         private System.Windows.Forms.ListView ServerListView;
+        private System.Windows.Forms.Button RobloxServerGamesButton;
     }
 }
