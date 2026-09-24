@@ -31,14 +31,9 @@ local function HttpGet(url)
 	return nil
 end
 
--- Some old clients only allow http://www.roblox.com, which the Raspberry Pi DNS or the
--- RobloxServerBridge web proxy extension sends to the RobloxServer.
+-- _G.RSBaseUrl is the RobloxServer address typed in the launcher (IP, robloxserver.lan or a DDNS name).
 local function Request(path)
-	local result = HttpGet(_G.RSBaseUrl .. path)
-	if (result == nil or result == "") then
-		result = HttpGet("http://www.roblox.com/" .. path)
-	end
-	return result
+	return HttpGet(_G.RSBaseUrl .. path)
 end
 
 local function Split(text)

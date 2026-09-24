@@ -10,7 +10,7 @@ Este fork do Novetus joga os jogos publicados no **[RobloxServer](https://github
 
 **Como jogar:** abra o launcher → *Server Browser* → **ROBLOXSERVER GAMES...**
 
-1. Digite o endereço do RobloxServer (ex.: `192.168.1.2` ou `meuroblox.duckdns.org`) e clique em **REFRESH**.
+1. Digite o endereço do RobloxServer (ex.: `robloxserver.lan`, `192.168.1.2` ou `meuroblox.duckdns.org`) e clique em **REFRESH**.
 2. Entre com a sua conta do RobloxServer (**LOG IN**).
 3. Escolha um jogo:
    * **PLAY SOLO** – baixa o place (`maps/Custom/RobloxServer/`) e abre no Play Solo com o cliente do jogo.
@@ -19,8 +19,8 @@ Este fork do Novetus joga os jogos publicados no **[RobloxServer](https://github
 
 Segurança no estilo 2015: o servidor de jogo usa o addon `addons/RobloxServerAuth.lua`, que valida o ticket
 de cada jogador em `/Game/ValidateTicket.ashx` e expulsa quem não tem ticket, está banido ou usa outro nome.
-Isso soma às verificações do Novetus (MD5 do cliente, do launcher e do script, tripcode). A extensão
-`RobloxServerBridge.cs` do web proxy encaminha essas chamadas quando o cliente só pode falar com `www.roblox.com`.
+Isso soma às verificações do Novetus (MD5 do cliente, do launcher e do script, tripcode). O servidor de jogo fala
+direto com o endereço do RobloxServer digitado no launcher; nada usa o domínio `www.roblox.com`.
 
 Para port forwarding use o Raspberry Pi Zero 2W do RobloxServer (`pi/` no repositório do servidor): coloque o IP
 deste PC e a sua `RobloxPort` em `GAME_FORWARDS`.
