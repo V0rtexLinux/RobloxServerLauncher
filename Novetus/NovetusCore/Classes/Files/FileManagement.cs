@@ -16,6 +16,32 @@ namespace Novetus.Core
     #region File Management
     public class FileManagement
     {
+        /// <summary>
+        /// Returns false, after explaining how to fix it, when the Novetus data folder (config, clients, maps...)
+        /// is missing. This happens when the programs are started from Visual Studio's "build" folder, which only
+        /// contains the executables.
+        /// </summary>
+        public static bool CheckDataFolder()
+        {
+            if (File.Exists(GlobalPaths.ConfigDir + "\\" + GlobalPaths.InfoName))
+            {
+                return true;
+            }
+
+            string dataPath = GlobalPaths.BasePath.Replace(@"\\", @"\");
+            string message = "A pasta de dados do Novetus não foi encontrada:\n" + dataPath + "\n\n" +
+                "Este programa precisa ficar dentro de uma instalação completa do Novetus (com as pastas clients, config, maps...). " +
+                "A pasta \"build\" gerada pelo Visual Studio só tem os executáveis.\n\n" +
+                "1. Baixe o Novetus em https://bitl.itch.io/novetus e extraia.\n" +
+                "2. Copie o conteúdo de build\\data\\bin para a pasta data\\bin do Novetus (faça um backup antes).\n" +
+                "3. Abra o NovetusBootstrapper.exe da pasta do Novetus.\n\n" +
+                "(Novetus data folder not found. Run this from a full Novetus installation.)";
+
+            System.Windows.Forms.MessageBox.Show(message, "Novetus - Pasta data não encontrada",
+                System.Windows.Forms.MessageBoxButtons.OK, System.Windows.Forms.MessageBoxIcon.Error);
+            return false;
+        }
+
         public static string CreateVersionName(string termspath, int revision)
         {
             string rev = revision.ToString();

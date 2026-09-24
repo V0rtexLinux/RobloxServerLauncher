@@ -23,6 +23,11 @@ namespace NovetusURI
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            if (!FileManagement.CheckDataFolder())
+            {
+                return;
+            }
+
             if (!Directory.Exists(GlobalPaths.LogDir))
             {
                 Directory.CreateDirectory(GlobalPaths.LogDir);

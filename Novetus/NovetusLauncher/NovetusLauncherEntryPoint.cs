@@ -38,6 +38,11 @@ namespace NovetusLauncher
             System.Windows.Forms.Application.EnableVisualStyles();
             System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
 
+            if (!FileManagement.CheckDataFolder())
+            {
+                return;
+            }
+
             if (!Directory.Exists(GlobalPaths.LogDir))
             {
                 Directory.CreateDirectory(GlobalPaths.LogDir);
