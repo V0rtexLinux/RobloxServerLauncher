@@ -1,0 +1,98 @@
+# Compiles the launcher on Windows and packages RobloxServerLauncher.zip:
+#   instalar.bat / instalar.ps1  - puts the launcher inside a Novetus installation and opens it
+#   launcher/                    - NovetusBootstrapper.exe + data/bin (Novetus.exe, NovetusURI.exe, DLLs)
+#   addons/                      - RobloxServerAuth.lua and AddonLoader.lua
+# On master the zip is also published as the "launcher-latest" release, downloadable without logging in.
+
+name: Build launcher
+
+on:
+  push:
+    branches: [ "master", "claude/**" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: microsoft/setup-msbuild@v2
+
+    - name: Restore NuGet packages
+      run: msbuild Novetus\Novetus.sln /t:Restore /p:Configuration=Release /v:minimal
+
+    - name: Build
+      run: msbuild Novetus\Novetus.sln /p:Configuration=Release /m /v:minimal
+
+    - name: Package
+      shell: pwsh
+      run: |
+        $out = "package\RobloxServerLauncher"
+        New-Item -ItemType Directory -Force -Path "$out\launcher", "$out\addons\core" | Out-Null
+        Copy-Item Novetus\build\* "$out\launcher" -Recurse
+        Get-ChildItem "$out\launcher" -Recurse -Include *.pdb, *.xml | Remove-Item
+        Copy-Item scripts\install\instalar.bat, scripts\install\instalar.ps1 $out
+        Copy-Item defaultaddons\RobloxServerAuth.lua "$out\addons"
+        Copy-Item defaultaddons\core\AddonLoader.lua "$out\addons\core"
+        if (-not (Test-Path "$out\launcher\NovetusBootstrapper.exe")) { throw "NovetusBootstrapper.exe was not built" }
+        if (-not (Test-Path "$out\launcher\data\bin\Novetus.exe")) { throw "Novetus.exe was not built" }
+        Compress-Archive -Path "$out\*" -DestinationPath RobloxServerLauncher.zip -Force
+        Get-ChildItem -Recurse $out | Select-Object FullName, Length | Format-Table -AutoSize
+
+    - name: Test the installer with a fake Novetus
+      shell: powershell
+      run: |
+        $fake = Join-Path $env:RUNNER_TEMP "FakeNovetus"
+        New-Item -ItemType Directory -Force -Path "$fake\data\config", "$fake\data\bin", "$fake\data\addons\core" | Out-Null
+        Set-Content "$fake\NovetusBootstrapper.exe" "old bootstrapper"
+        Set-Content "$fake\data\bin\Novetus.exe" "old launcher"
+        Set-Content "$fake\data\config\info.json" "{}"
+        Set-Content "$fake\data\addons\core\AddonLoader.lua" "-- put script names here`r`n`r`nAddons = {`"Utils`", `"ServerWhitelist`"}`r`n"
+        Compress-Archive -Path $fake -DestinationPath "$env:RUNNER_TEMP\Novetus_test.zip" -Force
+
+        $dest = Join-Path $env:RUNNER_TEMP "Installed"
+        & package\RobloxServerLauncher\instalar.ps1 -Novetus "$env:RUNNER_TEMP\Novetus_test.zip" -Destino $dest -NaoAbrir -SemPausa
+        if ($LASTEXITCODE) { throw "installer failed" }
+
+        $root = Join-Path $dest "FakeNovetus"
+        if ((Get-Item "$root\data\bin\Novetus.exe").Length -lt 10000) { throw "Novetus.exe was not replaced" }
+        if ((Get-Item "$root\NovetusBootstrapper.exe").Length -lt 10000) { throw "NovetusBootstrapper.exe was not replaced" }
+        if (-not (Test-Path "$root\data\addons\RobloxServerAuth.lua")) { throw "addon not copied" }
+        $loader = Get-Content "$root\data\addons\core\AddonLoader.lua" -Raw
+        if ($loader -notmatch 'Addons = \{"Utils", "ServerWhitelist", "RobloxServerAuth"\}') { throw "AddonLoader not updated: $loader" }
+        $backup = Get-ChildItem $root -Directory -Filter "backup-robloxserver-*" | Select-Object -First 1
+        if ((Get-Content "$($backup.FullName)\bin\Novetus.exe") -ne "old launcher") { throw "backup missing" }
+
+        # Running it again must not add the addon twice.
+        & package\RobloxServerLauncher\instalar.ps1 -Novetus $root -NaoAbrir -SemPausa
+        $loader = Get-Content "$root\data\addons\core\AddonLoader.lua" -Raw
+        if (([regex]::Matches($loader, 'RobloxServerAuth')).Count -ne 1) { throw "addon listed twice: $loader" }
+        Write-Host "Installer test passed"
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: RobloxServerLauncher
+        path: package/
+
+    - name: Publish the launcher-latest release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release delete launcher-latest --yes --cleanup-tag 2>$null
+        $notes = @"
+        Launcher compilado automaticamente a partir de $env:GITHUB_SHA.
+
+        1. Baixe RobloxServerLauncher.zip e extraia.
+        2. De dois cliques em instalar.bat: ele baixa/acha o Novetus, faz backup, copia o launcher e abre o jogo.
+        3. No launcher: Server Browser -> ROBLOXSERVER GAMES... -> endereco do seu RobloxServer (ex.: localhost:8080).
+        "@
+        gh release create launcher-latest RobloxServerLauncher.zip --prerelease --target $env:GITHUB_SHA --title "RobloxServerLauncher (ultima compilacao)" --notes $notes
