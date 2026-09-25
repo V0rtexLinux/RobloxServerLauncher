@@ -31,7 +31,7 @@ RobloxPlayerLauncher.exe ──────────┘
   2. /Game/PlaceLauncher.ashx?request=RequestGame → servidor, joinScriptUrl e cliente (2012M/2013M)
   3. /install/version.ashx?client=2012M           → versão + SHA-256; baixa /install/download.ashx se mudou
   4. /Game/Join.ashx?jobId=                       → script Lua assinado (--rbxsig) com um ticket novo
-  5. inicia o cliente:  RobloxApp_client.exe -script "content\scripts\robloxserver_join_xxxx.lua"
+  5. inicia o cliente:  RobloxApp_client.exe -script "dofile('rbxasset://scripts/robloxserver_join_xxxx.lua')"
 ```
 
 Com **Host Server** o launcher registra o servidor em `/Game/Servers.ashx`, baixa o place, pega o script de
@@ -51,8 +51,11 @@ O zip tem a pasta do cliente (os `.exe` e a pasta `content`). Sem configuração
 
 | Modo | Argumentos padrão |
 | --- | --- |
-| Jogar | `-script "{script}"` |
-| Servidor | `"{place}" -script "{script}"` |
+| Jogar | `-script "dofile('{scriptasset}')"` |
+| Servidor | `"{place}" -script "dofile('{scriptasset}')"` |
+
+Esses clientes executam o texto depois de `-script` como **código Lua** (é o mesmo `dofile(...)` que o Novetus usa),
+por isso o script gerado é salvo em `content\scripts` e carregado com `dofile`.
 
 Para outro layout, coloque um `RobloxServerClient.json` na raiz do zip:
 
@@ -60,8 +63,8 @@ Para outro layout, coloque um `RobloxServerClient.json` na raiz do zip:
 {
   "PlayerExe": "RobloxPlayerBeta.exe",
   "ServerExe": "RobloxApp_server.exe",
-  "PlayerArgs": "-script \"{script}\"",
-  "ServerArgs": "\"{place}\" -script \"{script}\"",
+  "PlayerArgs": "-script \"dofile('{scriptasset}')\"",
+  "ServerArgs": "\"{place}\" -script \"dofile('{scriptasset}')\"",
   "ServerLoadsPlace": false
 }
 ```
@@ -69,6 +72,9 @@ Para outro layout, coloque um `RobloxServerClient.json` na raiz do zip:
 Variáveis: `{script}` (caminho do Lua gerado), `{scriptasset}` (`rbxasset://scripts/...`), `{place}` (arquivo do
 place, só no servidor), `{port}`, `{baseurl}`. Com `"ServerLoadsPlace": true` (ou sem `{place}` nos argumentos)
 o servidor carrega o place pelo `game:Load` do script, em vez de receber o arquivo.
+
+Se o servidor fechar logo depois de abrir, o launcher mostra quanto tempo ele ficou aberto e o código de saída
+(também no `launcher.log`); quase sempre é o cliente recusando os argumentos.
 
 O cliente precisa aceitar scripts locais pelo `-script` (os clientes 2012M/2013M modificados para servidores
 privados aceitam). Para a lista de jogadores, o chat e a mochila, inclua os core scripts em

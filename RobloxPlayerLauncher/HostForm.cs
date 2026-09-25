@@ -78,7 +78,23 @@ namespace RobloxPlayerLauncher
             Controls.Add(stop);
 
             host.Updated += (sender, e) => OnUi(() => players.Text = "Players: " + host.Players);
-            host.Exited += (sender, e) => OnUi(Close);
+            host.Exited += (sender, e) => OnUi(ServerExited);
+        }
+
+        void ServerExited()
+        {
+            TimeSpan uptime = DateTime.Now - host.Started;
+            if (host.ExitedOnItsOwn && uptime < TimeSpan.FromMinutes(2))
+            {
+                // Closing right away usually means the client did not accept its arguments or script.
+                MessageBox.Show(this,
+                    "The game server closed after " + (int)uptime.TotalSeconds + " seconds (exit code "
+                    + (host.ExitCode.HasValue ? host.ExitCode.Value.ToString() : "unknown") + ").\r\n\r\n"
+                    + "Check that this client can run as a server with the arguments in its RobloxServerClient.json.\r\n"
+                    + "Details: " + Paths.LogFile,
+                    "ROBLOX", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            Close();
         }
 
         void OnUi(Action action)

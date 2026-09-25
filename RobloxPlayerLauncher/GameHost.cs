@@ -19,6 +19,13 @@ namespace RobloxPlayerLauncher
         public string GameName { get; private set; }
         public int Port { get; private set; }
         public int Players { get; private set; }
+        public DateTime Started { get; private set; }
+
+        /// <summary>Exit code of the game server process, once it has exited.</summary>
+        public int? ExitCode { get; private set; }
+
+        /// <summary>True when the process exited by itself (not because Stop was called).</summary>
+        public bool ExitedOnItsOwn { get; private set; }
 
         /// <summary>Raised on a thread pool thread when the server process exits.</summary>
         public event EventHandler Exited;
@@ -33,11 +40,21 @@ namespace RobloxPlayerLauncher
             Job = job;
             GameName = gameName;
             Port = port;
+            Started = DateTime.Now;
 
             process.EnableRaisingEvents = true;
             process.Exited += (sender, e) =>
             {
-                Paths.Log("Game server for job " + job.JobId + " exited.");
+                try
+                {
+                    ExitCode = process.ExitCode;
+                }
+                catch (InvalidOperationException)
+                {
+                }
+                ExitedOnItsOwn = stopped == 0;
+                Paths.Log("Game server for job " + job.JobId + " exited after " + (int)(DateTime.Now - Started).TotalSeconds
+                    + " s with code " + (ExitCode.HasValue ? ExitCode.Value.ToString() : "?") + ".");
                 Stop();
                 var handler = Exited;
                 if (handler != null)
