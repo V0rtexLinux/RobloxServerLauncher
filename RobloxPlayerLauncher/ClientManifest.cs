@@ -11,12 +11,14 @@ namespace RobloxPlayerLauncher
     /// {
     ///   "PlayerExe": "RobloxApp_client.exe",
     ///   "ServerExe": "RobloxApp_server.exe",
-    ///   "PlayerArgs": "-script \"{script}\"",
-    ///   "ServerArgs": "\"{place}\" -script \"{script}\"",
+    ///   "PlayerArgs": "-script \"dofile('{scriptasset}')\"",
+    ///   "ServerArgs": "\"{place}\" -script \"dofile('{scriptasset}')\"",
     ///   "ServerLoadsPlace": false
     /// }
     /// </code>
     /// Without it the launcher looks for the usual 2012/2013 exe names and uses the arguments above.
+    /// These clients run the text after -script as Lua code (the same "dofile(...)" call Novetus uses),
+    /// so the generated file is loaded with dofile from rbxasset://scripts/.
     /// Placeholders: {script} (full path of the generated Lua file), {scriptasset} (rbxasset://scripts/...),
     /// {place} (downloaded place file, server only), {port}, {baseurl}.
     /// </summary>
@@ -49,8 +51,8 @@ namespace RobloxPlayerLauncher
             var manifest = new ClientManifest
             {
                 Directory = directory,
-                PlayerArgs = "-script \"{script}\"",
-                ServerArgs = "\"{place}\" -script \"{script}\""
+                PlayerArgs = "-script \"dofile('{scriptasset}')\"",
+                ServerArgs = "\"{place}\" -script \"dofile('{scriptasset}')\""
             };
 
             string file = Path.Combine(directory, FileName);
