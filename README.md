@@ -1,125 +1,111 @@
-![Logo](https://github.com/Novetus/Novetus_src/raw/master/Graphics/NOVETUS_new_final_smol.png)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/2918741e76cd439a85f375186761725a)](https://app.codacy.com/gh/Novetus/Novetus_src/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-#
+# RobloxServerLauncher
 
-## RobloxServerLauncher
+O **RobloxPlayerLauncher.exe** é o launcher oficial do site **[RobloxServer](https://github.com/V0rtexLinux/RobloxServer)**,
+no estilo do launcher do roblox.com de 2013: você clica em **Play** no site e o jogo abre.
+Ele só joga os clientes **2012M** e **2013M**.
 
-Este fork do Novetus joga os jogos publicados no **[RobloxServer](https://github.com/V0rtexLinux/RobloxServer)**
-(servidor privado Roblox 2015 em ASP.NET clássico).
+> Esta versão foi reescrita do zero e não usa mais o Novetus. Não existe mais Server Browser nem mapas locais:
+> tudo vem do site.
 
-**Como jogar:** abra o launcher → *Server Browser* → **ROBLOXSERVER GAMES...**
+## Como jogar
 
-1. Digite o endereço do RobloxServer (ex.: `robloxserver.lan`, `192.168.1.2` ou `meuroblox.duckdns.org`) e clique em **REFRESH**.
-2. Entre com a sua conta do RobloxServer (**LOG IN**).
-3. Escolha um jogo:
-   * **PLAY SOLO** – baixa o place (`maps/Custom/RobloxServer/`) e abre no Play Solo com o cliente do jogo.
-   * **HOST SERVER** – registra um servidor (job) no site, abre o servidor na sua `RobloxPort` e mantém um heartbeat.
-   * **JOIN SERVER** – pede um servidor ao `PlaceLauncher.ashx`, recebe o join script assinado e entra com um ticket de autenticação de uso único.
+1. No site, clique em **Download ROBLOX** e rode o `RobloxPlayerLauncher.exe` uma vez. Ele se instala em
+   `%LocalAppData%\RobloxServer` e registra o protocolo `robloxserver-player:` (sem pedir administrador).
+2. Abra um jogo no site e clique em **Play**.
+3. Na primeira vez, o launcher pergunta se você confia no site. Depois ele baixa o cliente do jogo (2012M ou 2013M)
+   do próprio site, confere o SHA-256 e abre o jogo.
 
-Segurança no estilo 2015: o servidor de jogo usa o addon `addons/RobloxServerAuth.lua`, que valida o ticket
-de cada jogador em `/Game/ValidateTicket.ashx` e expulsa quem não tem ticket, está banido ou usa outro nome.
-Isso soma às verificações do Novetus (MD5 do cliente, do launcher e do script, tripcode). O servidor de jogo fala
-direto com o endereço do RobloxServer digitado no launcher; nada usa o domínio `www.roblox.com`.
+Para **hospedar** um servidor, clique em **Host Server** na página do jogo. A janela *ROBLOX Game Server* fica aberta
+enquanto o servidor roda; fechar a janela desliga o servidor e o remove do site. Libere a porta **UDP 53640**
+no roteador (ou no Raspberry Pi do RobloxServer) para jogadores de fora da sua rede.
 
-Para port forwarding use o Raspberry Pi Zero 2W do RobloxServer (`pi/` no repositório do servidor): coloque o IP
-deste PC e a sua `RobloxPort` em `GAME_FORWARDS`.
+## Como funciona
 
----
+```
+Site (Play)  ── GET /Game/GetAuthTicket.ashx ──►  ticket de uso único
+     │
+     └── robloxserver-player:1+launchmode:play+gameinfo:TICKET+placeid:ID+baseurl:URL
+                                   │
+RobloxPlayerLauncher.exe ──────────┘
+  1. /Login/Negotiate.ashx?suggest=TICKET        → cookie .ROBLOSECURITY só do launcher
+  2. /Game/PlaceLauncher.ashx?request=RequestGame → servidor, joinScriptUrl e cliente (2012M/2013M)
+  3. /install/version.ashx?client=2012M           → versão + SHA-256; baixa /install/download.ashx se mudou
+  4. /Game/Join.ashx?jobId=                       → script Lua assinado (--rbxsig) com um ticket novo
+  5. inicia o cliente:  RobloxApp_client.exe -script "content\scripts\robloxserver_join_xxxx.lua"
+```
 
-Source code for Novetus' launcher, installer, LUA scripts, and server.
-If you want to look at test applications built for Novetus' development, look here: https://github.com/Novetus/NovetusTests
-If you would like to look at the Places/Maps incuded in Novetus https://github.com/Novetus/Novetus-Map-Pack
+Com **Host Server** o launcher registra o servidor em `/Game/Servers.ashx`, baixa o place, pega o script de
+`/Game/GameServer.ashx`, abre o cliente como servidor e manda heartbeats até ele fechar. O script do servidor
+confere o ticket de cada jogador em `/Game/ValidateTicket.ashx` e expulsa quem não tem ticket válido.
 
-## Building (Windows)
+O launcher também se atualiza sozinho: se o site tiver um `RobloxPlayerLauncher.exe` diferente em
+`App_Data/Launcher`, ele baixa, confere o SHA-256 e passa o link para a versão nova.
 
-To build, this project requires Visual Studio 2017 or over. Modern versions of Novetus are compiled with Visual Studio 2022.
-Open either "Novetus/Novetus.sln" or "Novetus/Novetus.Tools.sln". Then, right click the solution and click "Restore Nuget Packages" before compiling.
- 
-## Legal info:
+## Pacotes de cliente (para o dono do site)
 
-ROBLOX and the ROBLOX Clients were made by the ROBLOX Corporation.
-The ROBLOX Corporation does not support or endorse the creation of Novetus.
-Bitl is not affiliated with the ROBLOX Corporation or its subsidiaries.
-Bitl does not own the majority of the places or items included with Novetus.
-Novetus is not associated with Novetus Engineering LLC.
-Novetus uses the majority of the Whimsee's Map Pack in the "full" version. Credits go to Whimsee and many other people for making that pack possible.
-Thank you to everyone who has contributed a map, item, or client including cole and many other people. 
-LUA scripts were used to build a client that can connect to LAN and the Internet.
-The LUA scripts used were borrowed from the RBXPri client and merged into 1 single script.
-All credit for the LUA code included with the RBXPri client goes to the RBXPri team.
-All credit for the LUA code used with "non-modern" clients goes to Scripter John and EnergyCell.
-All credit for the LUA code used for character customization goes to RBXBanLand.
-Parts of the codebase use bits and pieces of code from Stack Overflow, MSDN Forums, the Novetus GitHub Pull Requests and Codeproject.
-The original concept for the Diogenes editor was suggested by Carrot. The concept code was then modified to be smaller, more efficient, and more customizable.
-ObjToRBXMesh was made by coke. Modified to support 1.00 and 1.01. (https://github.com/Novetus/ObjToRBXMesh)
-Roblox Legacy Place Converter was made by BakonBot. (https://github.com/BakonBot/legacy-place-converter)
-ROBLOX Script Generator was made by S. Costeira.
-Thank you to NT_x86 for helping me with security fixes.
-Thank you XlXi for the idea of the original logo. This logo was remade in newer verions in higher quality.
-Thank you Nukley for the idea of the Splash Tester. 
-All credits for the used pieces of code go to the respective authors.
+O site serve um zip por cliente em `App_Data/Clients/2012M.zip` e `App_Data/Clients/2013M.zip`. A página *Admin*
+mostra quais estão instalados. Trocar o zip faz todos os launchers baixarem a versão nova.
 
-# Mark James' Silk icon set 1.3
+O zip tem a pasta do cliente (os `.exe` e a pasta `content`). Sem configuração, o launcher procura
+`RobloxApp_client.exe`, `RobloxApp_server.exe`, `RobloxPlayerBeta.exe`, `RobloxPlayer.exe` ou `RobloxApp.exe` e usa:
 
-The Discord Rich Presence icons and the SDK icons used for this application use Mark James' Silk icon set 1.3.
-[http://www.famfamfam.com/lab/icons/silk/](https://web.archive.org/web/20200328175105/http://www.famfamfam.com/lab/icons/silk/)
+| Modo | Argumentos padrão |
+| --- | --- |
+| Jogar | `-script "{script}"` |
+| Servidor | `"{place}" -script "{script}"` |
 
-# ReShade
+Para outro layout, coloque um `RobloxServerClient.json` na raiz do zip:
 
-Copyright 2014 Patrick Mours. All rights reserved.
+```json
+{
+  "PlayerExe": "RobloxPlayerBeta.exe",
+  "ServerExe": "RobloxApp_server.exe",
+  "PlayerArgs": "-script \"{script}\"",
+  "ServerArgs": "\"{place}\" -script \"{script}\"",
+  "ServerLoadsPlace": false
+}
+```
 
-Redistribution and use in source and binary forms, with or without modification, 
-are permitted provided that the following conditions are met:
+Variáveis: `{script}` (caminho do Lua gerado), `{scriptasset}` (`rbxasset://scripts/...`), `{place}` (arquivo do
+place, só no servidor), `{port}`, `{baseurl}`. Com `"ServerLoadsPlace": true` (ou sem `{place}` nos argumentos)
+o servidor carrega o place pelo `game:Load` do script, em vez de receber o arquivo.
 
-Redistributions of source code must retain the above copyright notice, 
-this list of conditions and the following disclaimer.
+O cliente precisa aceitar scripts locais pelo `-script` (os clientes 2012M/2013M modificados para servidores
+privados aceitam). Para a lista de jogadores, o chat e a mochila, inclua os core scripts em
+`content\scripts\cores` (o script de entrada carrega `rbxasset://scripts/cores/StarterScript.lua`).
 
-Redistributions in binary form must reproduce the above copyright notice, 
-this list of conditions and the following disclaimer in the documentation 
-and/or other materials provided with the distribution.
+## Segurança
 
-Neither the name of the copyright holder nor the names of its contributors 
-may be used to endorse or promote products derived from this software without 
-specific prior written permission.
+* Qualquer página pode abrir um link `robloxserver-player:`, por isso o launcher pergunta uma vez por site
+  (`TrustedSite` em `%LocalAppData%\RobloxServer\Settings.ini`) antes de baixar e rodar qualquer coisa.
+* Todas as requisições vão só para o site do link, sem seguir redirecionamentos para outros endereços.
+* Os pacotes são conferidos por SHA-256, e entradas do zip que sairiam da pasta do cliente são recusadas.
+* O ticket do botão Play vale uma vez só e expira em poucos minutos; o ticket do jogo é outro, validado pelo servidor.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING 
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, 
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+## Configurações
 
-# Novetus Launcher, Script and query.php license (MIT License)
+`%LocalAppData%\RobloxServer\Settings.ini`:
 
-MIT License
+```ini
+HostPort=53640        ; porta UDP do servidor quando você hospeda
+HostAddress=          ; endereço que os jogadores usam (vazio: o site decide)
+TrustedSite=http://robloxserver.lan/
+```
 
-Copyright (c) 2025 Bitl Development Studio/Bitl
+Desinstalar: `RobloxPlayerLauncher.exe --uninstall`. O log fica em `%LocalAppData%\RobloxServer\Logs\launcher.log`.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+## Compilando
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Abra `RobloxServerLauncher.sln` no Visual Studio 2015 ou mais novo (.NET Framework 4.6), ou use o Mono:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+```
+xbuild /p:Configuration=Release RobloxServerLauncher.sln
+```
 
-NOTE: In previous versions of Novetus, certain lines discussed about retroactive changes to the license following the 1.3/new 1.4 snapshots/1.4 (MIT) and the old 1.4 snapshots (GPL 3.0) license changes. These changes are legally NOT supposed to be retroactive due to the nature of open source licenses. ALL FUTURE, PRESENT AND PAST VERSIONS OF NOVETUS USE THE LICENSE THEY CAME WITH AND NO LICENSE IS APPLIED RETROACTIVELY.
+O GitHub Actions compila a cada push e publica o `RobloxPlayerLauncher.exe` em *Artifacts*. Copie-o para
+`App_Data/Launcher/` no site para que o botão **Download ROBLOX** e a atualização automática usem essa versão.
 
-#
+## Legal
 
-[![forthebadge](https://forthebadge.com/images/badges/made-with-c-sharp.svg)](https://forthebadge.com) [![forthebadge](https://forthebadge.com/images/badges/built-with-love.svg)](https://forthebadge.com)
+ROBLOX e os clientes ROBLOX foram feitos pela ROBLOX Corporation. Este projeto não é afiliado, patrocinado ou
+endossado pela ROBLOX Corporation.
