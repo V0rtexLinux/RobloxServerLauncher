@@ -1,0 +1,49 @@
+# Builds RobloxPlayerLauncher.exe with Mono (the same .NET Framework 4.6 target Visual Studio builds)
+# and uploads it. Copy the exe to the website's App_Data/Launcher to serve and auto-update it.
+
+name: Build
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Mono
+      run: |
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete
+    - name: Build
+      run: xbuild /nologo /p:Configuration=Release /p:TreatWarningsAsErrors=true RobloxServerLauncher.sln
+    - name: Launch link parser self check
+      run: |
+        cat > /tmp/check.cs <<'CS'
+        using System;
+        using RobloxPlayerLauncher;
+        static class Check
+        {
+            static int Main()
+            {
+                var r = LaunchRequest.Parse("robloxserver-player:1+launchmode:play+gameinfo:ABCDEF0123456789ABCDEF+placeid:1900000000+baseurl:http%3A%2F%2Frobloxserver.lan%2F+launchtime:1/");
+                if (r.Mode != LaunchMode.Play || r.PlaceId != 1900000000 || r.BaseUrl.ToString() != "http://robloxserver.lan/") return 1;
+                if (!r.PlaceLauncherUrl.ToString().StartsWith("http://robloxserver.lan/Game/PlaceLauncher.ashx")) return 2;
+                try { LaunchRequest.Parse("robloxserver-player:1+launchmode:play+gameinfo:ABCDEF0123456789ABCDEF+placeid:1+baseurl:http%3A%2F%2Fa.lan%2F+placelauncherurl:http%3A%2F%2Fevil.example%2Fx"); return 3; } catch (FormatException) { }
+                try { LaunchRequest.Parse("robloxserver-player:1+launchmode:play+gameinfo:bad+placeid:1+baseurl:http%3A%2F%2Fa.lan%2F"); return 4; } catch (FormatException) { }
+                Console.WriteLine("ok");
+                return 0;
+            }
+        }
+        CS
+        mcs -out:/tmp/check.exe -r:RobloxPlayerLauncher/bin/Release/RobloxPlayerLauncher.exe /tmp/check.cs
+        cp RobloxPlayerLauncher/bin/Release/RobloxPlayerLauncher.exe /tmp/
+        mono /tmp/check.exe
+    - name: Upload RobloxPlayerLauncher.exe
+      uses: actions/upload-artifact@v4
+      with:
+        name: RobloxPlayerLauncher
+        path: RobloxPlayerLauncher/bin/Release/RobloxPlayerLauncher.exe
