@@ -19,6 +19,9 @@ namespace RobloxPlayerLauncher
         public string GameName { get; private set; }
         public int Port { get; private set; }
         public int Players { get; private set; }
+
+        /// <summary>Heartbeats that failed in a row (the site may have forgotten the job).</summary>
+        public int HeartbeatFailures { get; private set; }
         public DateTime Started { get; private set; }
 
         /// <summary>Exit code of the game server process, once it has exited.</summary>
@@ -77,6 +80,7 @@ namespace RobloxPlayerLauncher
             {
                 site.Heartbeat(Job);
                 Players = site.GetPlayerCount(Job);
+                HeartbeatFailures = 0;
                 var handler = Updated;
                 if (handler != null)
                 {
@@ -85,6 +89,7 @@ namespace RobloxPlayerLauncher
             }
             catch (Exception ex)
             {
+                HeartbeatFailures++;
                 Paths.Log("Heartbeat failed: " + ex.Message);
             }
         }

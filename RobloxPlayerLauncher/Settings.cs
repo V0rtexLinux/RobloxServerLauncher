@@ -30,6 +30,15 @@ namespace RobloxPlayerLauncher
             HostLanAddress = "";
         }
 
+        /// <summary>Settings for a headless bot host (not read from or saved to Settings.ini).</summary>
+        public static Settings ForBot(int port, string address)
+        {
+            var s = new Settings();
+            s.HostPort = port;
+            s.HostAddress = address ?? "";
+            return s;
+        }
+
         public static Settings Load()
         {
             var settings = new Settings();
