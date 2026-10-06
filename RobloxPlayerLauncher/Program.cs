@@ -29,7 +29,7 @@ namespace RobloxPlayerLauncher
             int waitPid = 0;
             bool uninstall = false;
             bool botHost = false;
-            string site = null, apiKey = null;
+            string site = null, apiKey = null, setKey = null;
             for (int i = 0; i < args.Length; i++)
             {
                 string arg = args[i];
@@ -49,6 +49,10 @@ namespace RobloxPlayerLauncher
                 {
                     uninstall = true;
                 }
+                else if (arg == "--set-key" && i + 1 < args.Length)
+                {
+                    setKey = args[++i];
+                }
                 else if (arg == "--bot-host")
                 {
                     botHost = true;
@@ -65,6 +69,13 @@ namespace RobloxPlayerLauncher
 
             try
             {
+                if (setKey != null)
+                {
+                    BotKey.Save(setKey);
+                    MessageBox.Show("Chave dos bots salva (criptografada para este usuario do Windows).", "ROBLOX", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return 0;
+                }
+
                 if (botHost)
                 {
                     return BotHost.Run(site, apiKey);
@@ -169,9 +180,13 @@ namespace RobloxPlayerLauncher
 
         public static int Run(string site, string apiKey)
         {
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                apiKey = BotKey.Load();
+            }
             if (string.IsNullOrEmpty(site) || string.IsNullOrEmpty(apiKey))
             {
-                Paths.Log("Bot: use --bot-host --site URL --api-key CHAVE");
+                Paths.Log("Bot: rode antes --set-key CHAVE e depois --bot-host --site URL");
                 return 1;
             }
             bool created;
@@ -294,6 +309,47 @@ namespace RobloxPlayerLauncher
             using (var reader = new StreamReader(resp.GetResponseStream(), Encoding.UTF8))
             {
                 return reader.ReadToEnd();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Chave dos bots guardada criptografada com o DPAPI do Windows (so este usuario, nesta maquina, decifra).
+    /// Salvar uma vez:  RobloxPlayerLauncher.exe --set-key SUACHAVE
+    /// </summary>
+    public static class BotKey
+    {
+        static readonly byte[] Entropy = Encoding.UTF8.GetBytes("RobloxServer.BotKey");
+
+        static string FilePath
+        {
+            get { return Path.Combine(Paths.Root, "bot.key"); }
+        }
+
+        public static void Save(string key)
+        {
+            byte[] data = System.Security.Cryptography.ProtectedData.Protect(
+                Encoding.UTF8.GetBytes(key), Entropy, System.Security.Cryptography.DataProtectionScope.CurrentUser);
+            Directory.CreateDirectory(Paths.Root);
+            File.WriteAllBytes(FilePath, data);
+        }
+
+        public static string Load()
+        {
+            if (!File.Exists(FilePath))
+            {
+                return null;
+            }
+            try
+            {
+                byte[] data = System.Security.Cryptography.ProtectedData.Unprotect(
+                    File.ReadAllBytes(FilePath), Entropy, System.Security.Cryptography.DataProtectionScope.CurrentUser);
+                return Encoding.UTF8.GetString(data);
+            }
+            catch (Exception ex)
+            {
+                Paths.Log("Bot: nao consegui ler a chave salva (rode --set-key de novo neste usuario): " + ex.Message);
+                return null;
             }
         }
     }
