@@ -29,7 +29,7 @@ namespace RobloxPlayerLauncher
             int waitPid = 0;
             bool uninstall = false;
             bool botHost = false;
-            string site = null, apiKey = null, setKey = null;
+            string site = null, apiKey = null, setKey = null, siteDir = null;
             for (int i = 0; i < args.Length; i++)
             {
                 string arg = args[i];
@@ -48,6 +48,10 @@ namespace RobloxPlayerLauncher
                 else if (arg == "--uninstall" || arg == "/uninstall")
                 {
                     uninstall = true;
+                }
+                else if (arg == "--site-dir" && i + 1 < args.Length)
+                {
+                    siteDir = args[++i];
                 }
                 else if (arg == "--set-key" && i + 1 < args.Length)
                 {
@@ -78,7 +82,7 @@ namespace RobloxPlayerLauncher
 
                 if (botHost)
                 {
-                    return BotHost.Run(site, apiKey);
+                    return BotHost.Run(site, apiKey, siteDir);
                 }
 
                 if (uninstall)
@@ -167,6 +171,42 @@ namespace RobloxPlayerLauncher
     public static class BotHost
     {
         static readonly object StartLock = new object();
+        static string KeyFolder;
+
+        // A chave fica em <pasta do site>/App_Data/bot.key (o site cria se faltar; o launcher tambem).
+        static string KeyFromFolder()
+        {
+            if (string.IsNullOrEmpty(KeyFolder))
+            {
+                return null;
+            }
+            try
+            {
+                string dir = Path.Combine(KeyFolder, "App_Data");
+                if (!Directory.Exists(dir))
+                {
+                    Paths.Log("Bot: pasta nao encontrada: " + dir);
+                    return null;
+                }
+                string file = Path.Combine(dir, "bot.key");
+                if (!File.Exists(file))
+                {
+                    byte[] bytes = new byte[32];
+                    using (var rng = new System.Security.Cryptography.RNGCryptoServiceProvider())
+                    {
+                        rng.GetBytes(bytes);
+                    }
+                    File.WriteAllText(file, BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant());
+                }
+                string key = File.ReadAllText(file).Trim();
+                return key.Length >= 32 ? key : null;
+            }
+            catch (Exception ex)
+            {
+                Paths.Log("Bot: nao consegui ler a chave do site: " + ex.Message);
+                return null;
+            }
+        }
         static readonly object WantedLock = new object();
         static readonly HashSet<string> Wanted = new HashSet<string>();
 
@@ -178,15 +218,23 @@ namespace RobloxPlayerLauncher
             public string Key { get { return PlaceId + ":" + Port; } }
         }
 
-        public static int Run(string site, string apiKey)
+        public static int Run(string site, string apiKey, string siteDir)
         {
+            if (!string.IsNullOrEmpty(siteDir))
+            {
+                KeyFolder = siteDir;
+                if (string.IsNullOrEmpty(site))
+                {
+                    site = "http://localhost:8080/";
+                }
+            }
             if (string.IsNullOrEmpty(apiKey))
             {
-                apiKey = BotKey.Load();
+                apiKey = KeyFromFolder() ?? BotKey.Load();
             }
             if (string.IsNullOrEmpty(site) || string.IsNullOrEmpty(apiKey))
             {
-                Paths.Log("Bot: rode antes --set-key CHAVE e depois --bot-host --site URL");
+                Paths.Log("Bot: use --bot-host --site-dir PASTA_DO_SITE (ou --set-key CHAVE antes)");
                 return 1;
             }
             bool created;
@@ -304,7 +352,7 @@ namespace RobloxPlayerLauncher
             var req = (HttpWebRequest)WebRequest.Create(url);
             req.Timeout = 20000;
             req.ReadWriteTimeout = 20000;
-            req.Headers["X-Api-Key"] = apiKey;
+            req.Headers["X-Api-Key"] = KeyFromFolder() ?? apiKey;
             using (var resp = req.GetResponse())
             using (var reader = new StreamReader(resp.GetResponseStream(), Encoding.UTF8))
             {
