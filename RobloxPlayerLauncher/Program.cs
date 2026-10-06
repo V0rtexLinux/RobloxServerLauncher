@@ -29,7 +29,8 @@ namespace RobloxPlayerLauncher
             int waitPid = 0;
             bool uninstall = false;
             bool botHost = false;
-            string site = null, apiKey = null, setKey = null, siteDir = null;
+            string site = null, apiKey = null, setKey = null, siteDir = null, code = null;
+            bool pair = false;
             for (int i = 0; i < args.Length; i++)
             {
                 string arg = args[i];
@@ -48,6 +49,14 @@ namespace RobloxPlayerLauncher
                 else if (arg == "--uninstall" || arg == "/uninstall")
                 {
                     uninstall = true;
+                }
+                else if (arg == "--pair")
+                {
+                    pair = true;
+                }
+                else if (arg == "--code" && i + 1 < args.Length)
+                {
+                    code = args[++i];
                 }
                 else if (arg == "--site-dir" && i + 1 < args.Length)
                 {
@@ -73,6 +82,11 @@ namespace RobloxPlayerLauncher
 
             try
             {
+                if (pair)
+                {
+                    return BotHost.Pair(site, code);
+                }
+
                 if (setKey != null)
                 {
                     BotKey.Save(setKey);
@@ -170,6 +184,54 @@ namespace RobloxPlayerLauncher
     /// </summary>
     public static class BotHost
     {
+        // --pair --site https://seusite/ --code CODIGO : troca o codigo do admin por uma chave propria (DPAPI)
+        public static int Pair(string site, string code)
+        {
+            try
+            {
+                Uri baseUrl = LaunchRequest.ParseBaseUrl(site);
+                if (baseUrl.Scheme != Uri.UriSchemeHttps && !IsLocalAddress(baseUrl.Host))
+                {
+                    throw new Exception("use https:// no pareamento (a chave viajaria sem criptografia).");
+                }
+                var req = (HttpWebRequest)WebRequest.Create(new Uri(baseUrl, "Game/Servers.ashx?action=botpair"));
+                req.Method = "POST";
+                req.ContentType = "application/x-www-form-urlencoded";
+                req.Timeout = 20000;
+                byte[] body = Encoding.UTF8.GetBytes("code=" + Uri.EscapeDataString(code ?? ""));
+                req.ContentLength = body.Length;
+                using (Stream stream = req.GetRequestStream())
+                {
+                    stream.Write(body, 0, body.Length);
+                }
+                string key;
+                using (var resp = req.GetResponse())
+                using (var reader = new StreamReader(resp.GetResponseStream(), Encoding.UTF8))
+                {
+                    key = reader.ReadToEnd().Trim();
+                }
+                if (key.Length < 32)
+                {
+                    throw new Exception("resposta invalida do site.");
+                }
+                BotKey.Save(key);
+                MessageBox.Show("Pareado! Agora rode: --bot-host --site " + baseUrl, "ROBLOX", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Paths.Log("Bot: falha no pareamento: " + ex.Message);
+                MessageBox.Show("Falha no pareamento: " + ex.Message, "ROBLOX", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return 1;
+            }
+        }
+
+        static bool IsLocalAddress(string host)
+        {
+            return host == "localhost" || host.StartsWith("127.") || host.StartsWith("10.") || host.StartsWith("192.168.")
+                || System.Text.RegularExpressions.Regex.IsMatch(host, @"^172\.(1[6-9]|2[0-9]|3[01])\.");
+        }
+
         static readonly object StartLock = new object();
         static string KeyFolder;
 
