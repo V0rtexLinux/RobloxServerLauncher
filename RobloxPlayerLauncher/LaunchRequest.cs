@@ -7,7 +7,8 @@ namespace RobloxPlayerLauncher
     public enum LaunchMode
     {
         Play,
-        Host
+        Host,
+        Studio
     }
 
     /// <summary>
@@ -70,6 +71,10 @@ namespace RobloxPlayerLauncher
             {
                 request.Mode = LaunchMode.Host;
             }
+            else if (mode == "studio")
+            {
+                request.Mode = LaunchMode.Studio;
+            }
             else
             {
                 throw new FormatException("Unknown launch mode '" + mode + "'.");
@@ -82,7 +87,7 @@ namespace RobloxPlayerLauncher
             }
 
             long placeId;
-            if (!long.TryParse(Get(values, "placeid"), out placeId) || placeId <= 0)
+            if (!long.TryParse(Get(values, "placeid"), out placeId) || placeId < 0 || (placeId == 0 && request.Mode != LaunchMode.Studio))
             {
                 throw new FormatException("The place id in the link is not valid.");
             }

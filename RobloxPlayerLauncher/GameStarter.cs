@@ -44,6 +44,10 @@ namespace RobloxPlayerLauncher
             site.Negotiate(request.Ticket);
             cancel.ThrowIfCancellationRequested();
 
+            if (request.Mode == LaunchMode.Studio)
+            {
+                return Studio(cancel);
+            }
             return request.Mode == LaunchMode.Host ? Host(cancel) : Play(cancel);
         }
 
@@ -98,6 +102,63 @@ namespace RobloxPlayerLauncher
                 }
             }
             throw new LauncherException("The game closed right after starting. The exit code is in " + Paths.LogFile + ".");
+        }
+
+        /// <summary>
+        /// Studio mode (robloxserver-player:1+launchmode:studio+...+placeid:ID, 0 = new place): installs the place's
+        /// client, downloads the place, and starts that client's Studio logged in with a fresh ticket.
+        /// </summary>
+        GameHost Studio(CancellationToken cancel)
+        {
+            string client = "2013M";
+            if (request.PlaceId > 0)
+            {
+                GameInfo game = site.GetGame(request.PlaceId);
+                if (!string.IsNullOrEmpty(game.Client))
+                {
+                    client = game.Client;
+                }
+            }
+
+            Report("Preparing Roblox Studio...", -1);
+            string folder = ClientInstaller.Ensure(site, client, Report, cancel);
+            ClientManifest manifest = ClientManifest.Load(folder);
+            string exe = manifest.ExeFor(LaunchMode.Studio);
+
+            string placePath = "";
+            if (request.PlaceId > 0)
+            {
+                Report("Downloading your place...", -1);
+                string dir = Path.Combine(Paths.Root, "Studio");
+                Directory.CreateDirectory(dir);
+                string temp = Path.Combine(dir, request.PlaceId + ".tmp");
+                site.Download("Asset/?id=" + request.PlaceId, temp, (received, total) => { }, cancel);
+                bool xml;
+                using (FileStream stream = File.OpenRead(temp))
+                {
+                    int first = stream.ReadByte();
+                    if (first == 0xEF)
+                    {
+                        stream.Seek(3, SeekOrigin.Begin);
+                        first = stream.ReadByte();
+                    }
+                    xml = first == '<';
+                }
+                placePath = Path.Combine(dir, request.PlaceId + (xml ? ".rbxlx" : ".rbxl"));
+                File.Copy(temp, placePath, true);
+                File.Delete(temp);
+            }
+
+            // The launcher's own login ticket was used by Negotiate: ask for a new one for Studio itself.
+            string ticket = site.GetString("Game/GetAuthTicket.ashx?placeId=" + request.PlaceId, "Studio login").Trim();
+            Dictionary<string, string> values = Values(null, placePath, 0);
+            values["ticket"] = ticket;
+            values["authurl"] = new Uri(request.BaseUrl, "Login/Negotiate.ashx").ToString();
+            string args = manifest.ArgsFor(LaunchMode.Studio, values).Replace("\"\" ", "").Trim();
+
+            Report("Starting Roblox Studio...", -1);
+            Start(exe, args);
+            return null;
         }
 
         /// <summary>True when the client exits within a few seconds of starting; logs the exit code.</summary>

@@ -37,11 +37,19 @@ namespace RobloxPlayerLauncher
             "RobloxPlayerBeta.exe", "RobloxPlayer.exe", "RobloxApp.exe"
         };
 
+        /// <summary>Studio executables, in the order they are tried (the manifest's "StudioExe" wins).</summary>
+        static readonly string[] StudioCandidates =
+        {
+            "RobloxStudio.exe", "RobloxStudioBeta.exe", "RobloxApp_studio.exe", @"studio\RobloxApp_studio.exe", "RobloxStudioLauncher.exe"
+        };
+
         public string Directory { get; private set; }
         public string PlayerExe { get; private set; }
         public string ServerExe { get; private set; }
+        public string StudioExe { get; private set; }
         public string PlayerArgs { get; private set; }
         public string ServerArgs { get; private set; }
+        public string StudioArgs { get; private set; }
 
         /// <summary>True: the game server script loads the place itself (game:Load) and no place file is passed.</summary>
         public bool ServerLoadsPlace { get; private set; }
@@ -55,13 +63,18 @@ namespace RobloxPlayerLauncher
                 ServerArgs = "\"{place}\" -script \"dofile('{scriptasset}')\""
             };
 
+            // {place} = the downloaded place file ("" for a new place), {ticket}/{authurl} = automatic login.
+            manifest.StudioArgs = "\"{place}\" -t {ticket} -a {authurl}";
+
             string file = Path.Combine(directory, FileName);
             Dictionary<string, object> json = File.Exists(file) ? Json.Parse(File.ReadAllText(file)) : new Dictionary<string, object>();
 
             manifest.PlayerExe = manifest.FindExe(json.Str("PlayerExe"), PlayerCandidates);
             manifest.ServerExe = manifest.FindExe(json.Str("ServerExe"), ServerCandidates);
+            manifest.StudioExe = manifest.FindExe(json.Str("StudioExe"), StudioCandidates);
             manifest.PlayerArgs = json.Str("PlayerArgs") ?? manifest.PlayerArgs;
             manifest.ServerArgs = json.Str("ServerArgs") ?? manifest.ServerArgs;
+            manifest.StudioArgs = json.Str("StudioArgs") ?? manifest.StudioArgs;
             manifest.ServerLoadsPlace = json.Bool("ServerLoadsPlace") || manifest.ServerArgs.IndexOf("{place}", StringComparison.OrdinalIgnoreCase) < 0;
             return manifest;
         }
@@ -83,10 +96,10 @@ namespace RobloxPlayerLauncher
 
         public string ExeFor(LaunchMode mode)
         {
-            string exe = mode == LaunchMode.Host ? ServerExe : PlayerExe;
+            string exe = mode == LaunchMode.Host ? ServerExe : mode == LaunchMode.Studio ? StudioExe : PlayerExe;
             if (exe == null)
             {
-                throw new LauncherException("The client package has no " + (mode == LaunchMode.Host ? "server" : "player")
+                throw new LauncherException("The client package has no " + (mode == LaunchMode.Host ? "server" : mode == LaunchMode.Studio ? "Studio" : "player")
                     + " executable. Ask the website administrator to check " + FileName + ".");
             }
             return exe;
@@ -94,7 +107,7 @@ namespace RobloxPlayerLauncher
 
         public string ArgsFor(LaunchMode mode, IDictionary<string, string> values)
         {
-            string args = mode == LaunchMode.Host ? ServerArgs : PlayerArgs;
+            string args = mode == LaunchMode.Host ? ServerArgs : mode == LaunchMode.Studio ? StudioArgs : PlayerArgs;
             foreach (var pair in values)
             {
                 args = args.Replace("{" + pair.Key + "}", pair.Value ?? "");
